@@ -1,0 +1,8 @@
+export { db, type Db } from './client.js'
+export * from './schema/index.js'
+export { AgentRepository } from './repositories/agent.repo.js'
+export { ConversationRepository } from './repositories/conversation.repo.js'
+export { MessageRepository } from './repositories/message.repo.js'
+export { KbRepository } from './repositories/kb.repo.js'
+export { TenantRepository } from './repositories/tenant.repo.js'
+export { UserRepository } from './repositories/user.repo.js'
