@@ -9,46 +9,28 @@ steps:
         pnpm install --frozen-lockfile
         pnpm --filter=@smart-cs/widget build
 
-  # Versioned artifact — immutable, 1-year cache
+  # Versioned artifact (private — served exclusively through the API proxy)
   - name: gcr.io/cloud-builders/gsutil
     id: upload-versioned
     args:
       - -h
-      - 'Cache-Control:public, max-age=31536000, immutable'
+      - 'Cache-Control:private, no-cache'
       - cp
-      - -a
-      - public-read
       - apps/widget/dist/widget.min.js
       - 'gs://$_CDN_BUCKET/widget/$SHORT_SHA/widget.min.js'
 
-  # Latest pointer — always re-fetched
+  # Latest pointer — the API always reads this path
   - name: gcr.io/cloud-builders/gsutil
     id: upload-latest
     args:
       - -h
-      - 'Cache-Control:public, no-cache'
+      - 'Cache-Control:private, no-cache'
       - cp
-      - -a
-      - public-read
       - apps/widget/dist/widget.min.js
       - 'gs://$_CDN_BUCKET/widget/latest/widget.min.js'
 
-  # Invalidate Cloud CDN cache for the latest path
-  # Requires the Cloud Build SA to have roles/compute.networkAdmin
-  - name: gcr.io/google.com/cloudsdktool/cloud-sdk
-    id: invalidate-cdn
-    entrypoint: bash
-    args:
-      - -c
-      - |
-        gcloud compute url-maps invalidate-cdn-cache $_URL_MAP \
-          --path '/widget/latest/widget.min.js' \
-          --global \
-          --async
-
 substitutions:
-  _CDN_BUCKET: smart-cs-cdn   # GCS bucket fronted by Cloud CDN
-  _URL_MAP: smart-cs-cdn      # Cloud CDN URL map name (gcloud compute url-maps list)
+  _CDN_BUCKET: smart-cs-cdn   # Private GCS bucket, not publicly accessible
 
 options:
   logging: CLOUD_LOGGING_ONLY
