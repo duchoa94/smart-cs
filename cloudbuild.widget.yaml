@@ -1,0 +1,36 @@
+steps:
+  - name: node:22-slim
+    id: build-widget
+    entrypoint: bash
+    args:
+      - -c
+      - |
+        npm install -g pnpm@latest --silent
+        pnpm install --frozen-lockfile
+        pnpm --filter=@smart-cs/widget build
+
+  # Versioned artifact (private — served exclusively through the API proxy)
+  - name: gcr.io/cloud-builders/gsutil
+    id: upload-versioned
+    args:
+      - -h
+      - 'Cache-Control:private, no-cache'
+      - cp
+      - apps/widget/dist/widget.min.js
+      - 'gs://$_CDN_BUCKET/widget/$SHORT_SHA/widget.min.js'
+
+  # Latest pointer — the API always reads this path
+  - name: gcr.io/cloud-builders/gsutil
+    id: upload-latest
+    args:
+      - -h
+      - 'Cache-Control:private, no-cache'
+      - cp
+      - apps/widget/dist/widget.min.js
+      - 'gs://$_CDN_BUCKET/widget/latest/widget.min.js'
+
+substitutions:
+  _CDN_BUCKET: smart-cs-cdn   # Private GCS bucket, not publicly accessible
+
+options:
+  logging: CLOUD_LOGGING_ONLY
